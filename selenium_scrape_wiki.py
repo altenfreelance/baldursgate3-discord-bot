@@ -14,7 +14,7 @@ options.add_argument("--disable-dev-shm-usage")
 driver = webdriver.Chrome(options=options)
 
 # Define output
-output_file = "bg3_wiki_data.jsonl"
+output_file = "data/raw/bg3_wiki_data.jsonl"
 visited = set()
 to_visit = set(["https://bg3.wiki/"])
 saved_pages = 0
