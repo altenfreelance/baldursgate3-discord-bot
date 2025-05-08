@@ -1,7 +1,5 @@
 import discord
 from discord.ext import commands
-import asyncio
-from qa import get_answer  # Assumes your QA logic is in qa.py
 
 # Replace this with your actual bot token
 DISCORD_TOKEN = "YOUR_DISCORD_BOT_TOKEN"
