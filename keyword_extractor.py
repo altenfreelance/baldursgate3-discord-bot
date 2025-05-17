@@ -2,16 +2,25 @@ import json
 import random
 from keybert import KeyBERT
 
+def extract_keywords(input_text):
+    """
+    Prompts the user for a string and extracts keywords from it.
+    """
+
+    kw_model = KeyBERT()
+    keywords = kw_model.extract_keywords(input_text)
+    print("--- Keywords from your input ---")
+    print(keywords)
+    return keywords
+
 def extract_keyword_from_user_input():
     """
     Prompts the user for a string and extracts keywords from it.
     """
     user_prompt = input("Please enter a string: ")
 
-    kw_model = KeyBERT()
-    keywords = kw_model.extract_keywords(user_prompt)
-    print("--- Keywords from your input ---")
-    print(keywords)
+    return extract_keywords(user_prompt)
+
 
 def extract_keywords_from_file_samples(filepath="data/raw/bg3_wiki_data.jsonl", num_samples=3):
     """
