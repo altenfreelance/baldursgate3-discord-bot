@@ -1,14 +1,11 @@
 # search_data.py
 import json
 import os
-import re # Import the regular expression module
+import re
 
-from keyword_extractor import extract_keywords # This is your function for keywords
+from keyword_extractor import extract_keywords
 
 GENERATED_DATA_FILE = 'data/generated/bg3_wiki_data_keywords.jsonl'
-
-# Define a blacklist of common/non-specific words to ignore from user search queries
-# You can expand this list based on your needs.
 SEARCH_QUERY_BLACKLIST = {
     "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
     "have", "has", "had", "do", "does", "did", "will", "would", "should",
@@ -32,18 +29,13 @@ SEARCH_QUERY_BLACKLIST = {
     # Add other words like 'page', 'article', 'information', 'about', 'help'
     # if they are too generic for your search context.
 }
-
-# Minimum length for a keyword from user query to be considered (after blacklist)
-MIN_USER_KEYWORD_LENGTH = 2  # e.g., "ac" is fine, "a" would be filtered if not in blacklist
+MIN_USER_KEYWORD_LENGTH = 2
 
 
-def search_documents(user_query: str):
-    """
-    Takes user input, generates keywords using extract_keywords, filters them
-    against a blacklist, and searches the preprocessed JSONL file.
-    Results are sorted by title match first, then by the highest weight of a matched keyword.
-    Title matches are now whole-word based.
-    """
+def search_documents(user_query: str) -> list[dict]:
+    # ... (this function's content remains exactly the same as your last version)
+    # It already returns a list of full document dictionaries: [item[2] for item in sorted_matches]
+    # where item[2] is the 'doc' object.
     if not os.path.exists(GENERATED_DATA_FILE):
         print(f"Error: Preprocessed data file {GENERATED_DATA_FILE} not found.")
         print("Please run the preprocess_data.py script first.")
@@ -51,11 +43,12 @@ def search_documents(user_query: str):
 
     user_query_keywords_with_weights = extract_keywords(user_query)
 
-    if not user_query_keywords_with_weights:
-        print("No keywords extracted from your query by extract_keywords.")
-        return []
+    print(f"Keywords initially extracted from user query (by extract_keywords): {user_query_keywords_with_weights}")
 
-    print(f"Keywords initially extracted from user query: {user_query_keywords_with_weights}")
+    if not user_query_keywords_with_weights:
+        print(
+            "Since no keywords were effectively extracted (or extract_keywords returned an empty list), cannot proceed with search.")
+        return []
 
     processed_user_keyword_strings = []
     for item in user_query_keywords_with_weights:
@@ -84,15 +77,10 @@ def search_documents(user_query: str):
 
                     is_title_match = False
                     for user_kw_lower_str in user_keywords_set_lower:
-                        # MODIFIED PART FOR TITLE MATCHING:
-                        # Use regex for whole word matching.
-                        # re.escape handles any special regex characters in the user keyword.
-                        # \b denotes a word boundary.
                         pattern = r'\b' + re.escape(user_kw_lower_str) + r'\b'
                         if re.search(pattern, title_lower):
                             is_title_match = True
                             break
-                    # END OF MODIFIED PART
 
                     max_matching_keyword_weight = 0.0
                     found_keyword_in_list = False
@@ -101,9 +89,10 @@ def search_documents(user_query: str):
                         for kw_entry in doc_keywords_with_weights:
                             if isinstance(kw_entry, list) and len(kw_entry) == 2 and isinstance(kw_entry[0], str):
                                 doc_kw_str_lower = kw_entry[0].lower()
-                                doc_kw_weight = float(kw_entry[1])
-                                # This part already does an exact match of the user keyword
-                                # against the document's keywords, which is good.
+                                try:
+                                    doc_kw_weight = float(kw_entry[1])
+                                except (ValueError, TypeError):
+                                    doc_kw_weight = 0.0
                                 if doc_kw_str_lower in user_keywords_set_lower:
                                     found_keyword_in_list = True
                                     max_matching_keyword_weight = max(max_matching_keyword_weight, doc_kw_weight)
@@ -111,8 +100,7 @@ def search_documents(user_query: str):
                     if is_title_match or found_keyword_in_list:
                         title_match_priority_score = 1 if is_title_match else 0
                         effective_weight = max_matching_keyword_weight if found_keyword_in_list else 0.0
-                        potential_matches.append((title_match_priority_score, effective_weight, doc))
-
+                        potential_matches.append((title_match_priority_score, effective_weight, doc)) # doc is the full document
                 except json.JSONDecodeError:
                     print(f"Warning: Could not parse line {line_number} in {GENERATED_DATA_FILE}. Skipping.")
                 except (TypeError, ValueError) as e:
@@ -120,13 +108,12 @@ def search_documents(user_query: str):
                         f"Warning: Data format error in line {line_number} for keywords: {e}. Entry: {line.strip()[:100]}...")
                 except Exception as e:
                     print(f"Error processing line {line_number} for search: {e}. Entry: {line.strip()[:100]}...")
-
     except FileNotFoundError:
         print(f"Error: Preprocessed data file {GENERATED_DATA_FILE} not found during search.")
         return []
 
     sorted_matches = sorted(potential_matches, key=lambda x: (-x[0], -x[1]))
-    return [item[2] for item in sorted_matches]
+    return [item[2] for item in sorted_matches] # Returns a list of full document dicts
 
 
 if __name__ == "__main__":
@@ -141,9 +128,7 @@ if __name__ == "__main__":
             if not query.strip():
                 print("Please enter a search term.")
                 continue
-
             results = search_documents(query)
-
             if results:
                 print(f"\nFound {len(results)} matching document(s) (sorted by relevance):")
                 for i, doc in enumerate(results, 1):
